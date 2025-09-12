@@ -2,20 +2,25 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useSimulation } from "./SimulationContext";
-import { Play, Pause, Square, RotateCcw, Download, Zap } from "lucide-react";
+import { Play, Pause, Square, RotateCcw, Download, Zap, RotateCw, Camera } from "lucide-react";
+import { CameraControls } from "./CameraControls";
 
 export const SimulationControls = () => {
   const {
     isRunning,
     isPaused,
     speed,
+    isRoundabout,
+    cameraPreset,
     startSimulation,
     pauseSimulation,
     stopSimulation,
     setSimulationSpeed,
     resetToBaseline,
     optimizeSignals,
-    exportMetrics
+    exportMetrics,
+    toggleRoundabout,
+    setCameraPreset
   } = useSimulation();
 
   return (
@@ -76,6 +81,16 @@ export const SimulationControls = () => {
         {/* Action buttons */}
         <div className="space-y-2">
           <Button
+            variant={isRoundabout ? "default" : "outline"}
+            size="sm"
+            onClick={toggleRoundabout}
+            className="w-full"
+          >
+            <RotateCw className="w-4 h-4 mr-2" />
+            {isRoundabout ? "Disable" : "Enable"} Roundabout
+          </Button>
+          
+          <Button
             variant="outline"
             size="sm"
             onClick={resetToBaseline}
@@ -90,6 +105,7 @@ export const SimulationControls = () => {
             size="sm"
             onClick={optimizeSignals}
             className="w-full"
+            disabled={isRoundabout}
           >
             <Zap className="w-4 h-4 mr-2" />
             Optimize Signals
@@ -104,6 +120,14 @@ export const SimulationControls = () => {
             <Download className="w-4 h-4 mr-2" />
             Export Metrics
           </Button>
+        </div>
+
+        {/* Camera Controls */}
+        <div className="pt-4 border-t border-border">
+          <CameraControls 
+            currentPreset={cameraPreset} 
+            onPresetChange={setCameraPreset}
+          />
         </div>
 
         {/* Status indicator */}

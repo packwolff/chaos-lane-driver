@@ -56,6 +56,14 @@ export interface Metrics {
   averageSpeed: number;
   co2Emissions: number;
   congestionLevel: number;
+  throughput: number;
+}
+
+// Baseline metrics for comparison
+export interface BaselineMetrics {
+  averageWaitTime: number;
+  averageSpeed: number;
+  throughput: number;
 }
 
 // Simulation context
@@ -68,8 +76,11 @@ interface SimulationContextType {
   obstructions: Obstruction[];
   trafficSignal: TrafficSignal;
   metrics: Metrics;
+  baselineMetrics: BaselineMetrics | null;
   selectedTool: ObstructionType | null;
   isPlacingObstruction: boolean;
+  isRoundabout: boolean;
+  cameraPreset: 'orbit' | 'top-down' | 'approach' | 'judge';
   
   // Actions
   startSimulation: () => void;
@@ -84,6 +95,8 @@ interface SimulationContextType {
   exportMetrics: () => void;
   resetToBaseline: () => void;
   placeObstructionAtPosition: (x: number, z: number) => void;
+  toggleRoundabout: () => void;
+  setCameraPreset: (preset: 'orbit' | 'top-down' | 'approach' | 'judge') => void;
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -104,6 +117,9 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [obstructions, setObstructions] = useState<Obstruction[]>([]);
   const [selectedTool, setSelectedTool] = useState<ObstructionType | null>(null);
+  const [isRoundabout, setIsRoundabout] = useState(false);
+  const [cameraPreset, setCameraPreset] = useState<'orbit' | 'top-down' | 'approach' | 'judge'>('orbit');
+  const [baselineMetrics, setBaselineMetrics] = useState<BaselineMetrics | null>(null);
   
   // Traffic signal state
   const [trafficSignal, setTrafficSignal] = useState<TrafficSignal>({
@@ -119,7 +135,8 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     averageWaitTime: 0,
     averageSpeed: 0,
     co2Emissions: 0,
-    congestionLevel: 0
+    congestionLevel: 0,
+    throughput: 0
   });
 
   // Refs for animation
@@ -127,6 +144,8 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const lastTimeRef = useRef<number>(0);
   const vehicleIdCounter = useRef(0);
   const obstructionIdCounter = useRef(0);
+  const completedVehiclesRef = useRef(0);
+  const simulationStartTime = useRef<number>(0);
 
   // Vehicle spawning configuration
   const spawnRate = 1; // vehicles per second
@@ -417,7 +436,8 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       averageWaitTime: avgWaitTime,
       averageSpeed: avgSpeed,
       co2Emissions: totalCO2,
-      congestionLevel
+      congestionLevel,
+      throughput: completedVehiclesRef.current / Math.max(1, (performance.now() - simulationStartTime.current) / 60000) // vehicles per minute
     });
   }, [vehicles]);
 
@@ -632,8 +652,11 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     obstructions,
     trafficSignal,
     metrics,
+    baselineMetrics,
     selectedTool,
     isPlacingObstruction: selectedTool !== null,
+    isRoundabout,
+    cameraPreset,
     startSimulation,
     pauseSimulation,
     stopSimulation,
@@ -645,7 +668,9 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     optimizeSignals,
     exportMetrics,
     resetToBaseline,
-    placeObstructionAtPosition
+    placeObstructionAtPosition,
+    toggleRoundabout: () => setIsRoundabout(!isRoundabout),
+    setCameraPreset
   };
 
   return (
