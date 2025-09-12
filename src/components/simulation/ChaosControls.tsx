@@ -1,8 +1,9 @@
+// Enhanced chaos controls for traffic simulation
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useEnhancedSimulation, ObstructionType } from "./EnhancedSimulationContext";
+import { useEnhancedSimulation, type ObstructionType } from "./EnhancedSimulationContext";
 import { 
   Construction, 
   Shield, 
