@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useSimulation, ObstructionType } from "./SimulationContext";
+import { useEnhancedSimulation, ObstructionType } from "./EnhancedSimulationContext";
 import { 
   Construction, 
   Shield, 
@@ -20,7 +20,7 @@ export const ChaosControls = () => {
     removeObstruction, 
     clearAllObstructions,
     isPlacingObstruction 
-  } = useSimulation();
+  } = useEnhancedSimulation();
 
   const handleToolSelect = (tool: ObstructionType) => {
     if (selectedTool === tool) {
