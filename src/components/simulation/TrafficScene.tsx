@@ -102,48 +102,261 @@ const TrafficLight = ({ position, signals }: {
   );
 };
 
-// Vehicle component
+// Enhanced realistic vehicle component with detailed 3D models
 const Vehicle = ({ vehicle }: { vehicle: any }) => {
-  const meshRef = useRef<Mesh>(null);
+  const groupRef = useRef<any>(null);
+  const wheelRefs = [useRef<Mesh>(null), useRef<Mesh>(null), useRef<Mesh>(null), useRef<Mesh>(null)];
   
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.position.copy(vehicle.position);
-      meshRef.current.rotation.y = vehicle.rotation;
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      groupRef.current.position.copy(vehicle.position);
+      groupRef.current.rotation.y = vehicle.rotation;
+      
+      // Animate wheels based on speed
+      const wheelRotation = vehicle.speed * delta * 2;
+      wheelRefs.forEach(wheelRef => {
+        if (wheelRef.current) {
+          wheelRef.current.rotation.x += wheelRotation;
+        }
+      });
     }
   });
 
-  const vehicleColor = useMemo(() => {
+  const VehicleBody = () => {
     switch (vehicle.type) {
-      case "car": return "#4a90e2";
-      case "bus": return "#f5a623";
-      case "truck": return "#d0021b";
-      default: return "#4a90e2";
+      case "car":
+        return (
+          <group>
+            {/* Main body */}
+            <mesh position={[0, 0.5, 0]} castShadow>
+              <boxGeometry args={[1.8, 0.8, 4.2]} />
+              <meshPhysicalMaterial 
+                color="#2E86AB" 
+                metalness={0.8} 
+                roughness={0.2}
+                clearcoat={1}
+                clearcoatRoughness={0.1}
+              />
+            </mesh>
+            
+            {/* Hood */}
+            <mesh position={[0, 0.6, 1.8]} castShadow>
+              <boxGeometry args={[1.6, 0.4, 1]} />
+              <meshPhysicalMaterial 
+                color="#2E86AB" 
+                metalness={0.8} 
+                roughness={0.2}
+                clearcoat={1}
+              />
+            </mesh>
+            
+            {/* Windshield */}
+            <mesh position={[0, 1.1, 0.5]} castShadow>
+              <boxGeometry args={[1.6, 0.8, 2]} />
+              <meshPhysicalMaterial 
+                color="#87CEEB" 
+                transmission={0.9}
+                opacity={0.3}
+                transparent
+                roughness={0}
+                metalness={0}
+              />
+            </mesh>
+            
+            {/* Headlights */}
+            <mesh position={[0.6, 0.4, 2.2]}>
+              <sphereGeometry args={[0.2]} />
+              <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} />
+            </mesh>
+            <mesh position={[-0.6, 0.4, 2.2]}>
+              <sphereGeometry args={[0.2]} />
+              <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.5} />
+            </mesh>
+            
+            {/* Taillights */}
+            <mesh position={[0.6, 0.4, -2.2]}>
+              <sphereGeometry args={[0.15]} />
+              <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.3} />
+            </mesh>
+            <mesh position={[-0.6, 0.4, -2.2]}>
+              <sphereGeometry args={[0.15]} />
+              <meshStandardMaterial color="#ff0000" emissive="#ff0000" emissiveIntensity={0.3} />
+            </mesh>
+          </group>
+        );
+        
+      case "bus":
+        return (
+          <group>
+            {/* Main body */}
+            <mesh position={[0, 1.2, 0]} castShadow>
+              <boxGeometry args={[2.4, 2, 12]} />
+              <meshPhysicalMaterial 
+                color="#F5A623" 
+                metalness={0.6} 
+                roughness={0.3}
+              />
+            </mesh>
+            
+            {/* Windows */}
+            <mesh position={[0, 1.8, 2]} castShadow>
+              <boxGeometry args={[2.2, 0.8, 8]} />
+              <meshPhysicalMaterial 
+                color="#87CEEB" 
+                transmission={0.8}
+                opacity={0.4}
+                transparent
+              />
+            </mesh>
+            
+            {/* Front */}
+            <mesh position={[0, 1, 6.2]} castShadow>
+              <boxGeometry args={[2.2, 1.5, 0.4]} />
+              <meshPhysicalMaterial color="#F5A623" metalness={0.6} roughness={0.3} />
+            </mesh>
+            
+            {/* Headlights */}
+            <mesh position={[0.8, 0.8, 6.4]}>
+              <cylinderGeometry args={[0.3, 0.3, 0.2]} />
+              <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.4} />
+            </mesh>
+            <mesh position={[-0.8, 0.8, 6.4]}>
+              <cylinderGeometry args={[0.3, 0.3, 0.2]} />
+              <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.4} />
+            </mesh>
+          </group>
+        );
+        
+      case "truck":
+        return (
+          <group>
+            {/* Cab */}
+            <mesh position={[0, 1.2, 2.5]} castShadow>
+              <boxGeometry args={[2.4, 2, 3]} />
+              <meshPhysicalMaterial 
+                color="#D0021B" 
+                metalness={0.7} 
+                roughness={0.2}
+              />
+            </mesh>
+            
+            {/* Trailer */}
+            <mesh position={[0, 1.5, -2]} castShadow>
+              <boxGeometry args={[2.4, 2.5, 8]} />
+              <meshPhysicalMaterial 
+                color="#34495E" 
+                metalness={0.4} 
+                roughness={0.6}
+              />
+            </mesh>
+            
+            {/* Cab windshield */}
+            <mesh position={[0, 1.8, 3.8]} castShadow>
+              <boxGeometry args={[2.2, 1, 0.2]} />
+              <meshPhysicalMaterial 
+                color="#87CEEB" 
+                transmission={0.8}
+                opacity={0.4}
+                transparent
+              />
+            </mesh>
+            
+            {/* Headlights */}
+            <mesh position={[0.8, 0.8, 4.1]}>
+              <cylinderGeometry args={[0.25, 0.25, 0.2]} />
+              <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.4} />
+            </mesh>
+            <mesh position={[-0.8, 0.8, 4.1]}>
+              <cylinderGeometry args={[0.25, 0.25, 0.2]} />
+              <meshStandardMaterial color="#ffffff" emissive="#ffffff" emissiveIntensity={0.4} />
+            </mesh>
+          </group>
+        );
+        
+      default:
+        return <VehicleBody />;
+    }
+  };
+
+  const wheelPositions = useMemo(() => {
+    switch (vehicle.type) {
+      case "car": return [
+        [0.9, 0, 1.5], [-0.9, 0, 1.5],
+        [0.9, 0, -1.5], [-0.9, 0, -1.5]
+      ];
+      case "bus": return [
+        [1.2, 0, 4], [-1.2, 0, 4],
+        [1.2, 0, -4], [-1.2, 0, -4]
+      ];
+      case "truck": return [
+        [1.2, 0, 3], [-1.2, 0, 3],
+        [1.2, 0, -1], [-1.2, 0, -1],
+        [1.2, 0, -3], [-1.2, 0, -3]
+      ];
+      default: return [[0.9, 0, 1.5], [-0.9, 0, 1.5], [0.9, 0, -1.5], [-0.9, 0, -1.5]];
     }
   }, [vehicle.type]);
 
-  const vehicleSize: [number, number, number] = useMemo(() => {
-    switch (vehicle.type) {
-      case "car": return [2, 1, 4];
-      case "bus": return [2.5, 2, 12];
-      case "truck": return [2.5, 2.5, 8];
-      default: return [2, 1, 4];
-    }
-  }, [vehicle.type]);
+  const wheelSize = vehicle.type === "truck" ? 0.6 : vehicle.type === "bus" ? 0.5 : 0.4;
 
   return (
-    <mesh ref={meshRef} position={vehicle.position}>
-      <boxGeometry args={vehicleSize} />
-      <meshLambertMaterial color={vehicleColor} />
+    <group ref={groupRef} position={vehicle.position}>
+      <VehicleBody />
       
-      {/* Vehicle status indicator */}
-      {vehicle.isWaiting && (
-        <mesh position={[0, vehicleSize[1] + 0.5, 0]}>
-          <sphereGeometry args={[0.3]} />
-          <meshLambertMaterial color="#ff0000" emissive="#330000" />
+      {/* Wheels */}
+      {wheelPositions.map((pos, index) => (
+        <mesh 
+          key={index}
+          ref={wheelRefs[index] || useRef<Mesh>(null)} 
+          position={pos as [number, number, number]}
+          rotation={[0, 0, Math.PI / 2]}
+          castShadow
+        >
+          <cylinderGeometry args={[wheelSize, wheelSize, 0.3]} />
+          <meshPhysicalMaterial color="#1a1a1a" roughness={0.8} metalness={0.1} />
         </mesh>
+      ))}
+      
+      {/* Rim details */}
+      {wheelPositions.map((pos, index) => (
+        <mesh 
+          key={`rim-${index}`}
+          position={pos as [number, number, number]}
+          rotation={[0, 0, Math.PI / 2]}
+        >
+          <cylinderGeometry args={[wheelSize * 0.6, wheelSize * 0.6, 0.31]} />
+          <meshPhysicalMaterial color="#C0C0C0" roughness={0.2} metalness={0.8} />
+        </mesh>
+      ))}
+      
+      {/* Enhanced status indicator */}
+      {vehicle.isWaiting && (
+        <group>
+          <mesh position={[0, 3, 0]}>
+            <sphereGeometry args={[0.4]} />
+            <meshStandardMaterial color="#ff4444" emissive="#ff0000" emissiveIntensity={0.6} />
+          </mesh>
+          <mesh position={[0, 3.8, 0]}>
+            <coneGeometry args={[0.2, 0.6]} />
+            <meshStandardMaterial color="#ffff00" emissive="#ffff00" emissiveIntensity={0.4} />
+          </mesh>
+        </group>
       )}
-    </mesh>
+      
+      {/* Speed indicator particles for fast vehicles */}
+      {vehicle.speed > 0.5 && (
+        <group>
+          <mesh position={[-2, 0.5, 0]}>
+            <sphereGeometry args={[0.1]} />
+            <meshBasicMaterial color="#00ffff" transparent opacity={0.6} />
+          </mesh>
+          <mesh position={[-2.5, 0.3, 0]}>
+            <sphereGeometry args={[0.08]} />
+            <meshBasicMaterial color="#00ffff" transparent opacity={0.4} />
+          </mesh>
+        </group>
+      )}
+    </group>
   );
 };
 
