@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,149 +11,24 @@ import {
   Target,
   X
 } from "lucide-react";
-import { Vector3, Raycaster, Vector2 } from "three";
-import { useThree } from "@react-three/fiber";
 
 export const ChaosControls = () => {
   const { 
     selectedTool, 
     obstructions, 
     selectTool, 
-    addObstruction, 
     removeObstruction, 
-    clearAllObstructions 
+    clearAllObstructions,
+    isPlacingObstruction 
   } = useSimulation();
 
-  const [isPlacing, setIsPlacing] = useState(false);
-  const { camera, scene } = useThree();
-  
   const handleToolSelect = (tool: ObstructionType) => {
     if (selectedTool === tool) {
       selectTool(null);
-      setIsPlacing(false);
     } else {
       selectTool(tool);
-      setIsPlacing(true);
     }
   };
-
-  const handleSceneClick = (event: any) => {
-    if (!selectedTool || !isPlacing) return;
-
-    // Raycast to find click position on road
-    const raycaster = new Raycaster();
-    const mouse = new Vector2();
-    
-    // Convert screen coordinates to normalized device coordinates
-    const rect = event.target.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    
-    raycaster.setFromCamera(mouse, camera);
-    
-    // Find intersection with ground plane
-    const intersects = raycaster.intersectObjects(scene.children, true);
-    
-    if (intersects.length > 0) {
-      const point = intersects[0].point;
-      
-      // Check if click is on road (within road bounds)
-      const isOnRoad = (Math.abs(point.x) < 10 && Math.abs(point.z) < 500) || 
-                      (Math.abs(point.z) < 10 && Math.abs(point.x) < 500);
-      
-      if (!isOnRoad) {
-        alert("Invalid placement — must be on road.");
-        return;
-      }
-
-      // Determine which lane and direction
-      let lane = 1;
-      let direction: "north" | "south" | "east" | "west";
-      
-      if (Math.abs(point.x) < 10) {
-        // North-South road
-        direction = point.z > 0 ? "north" : "south";
-        lane = point.x < 0 ? 1 : 2;
-      } else {
-        // East-West road  
-        direction = point.x > 0 ? "east" : "west";
-        lane = point.z > 0 ? 1 : 2;
-      }
-
-      // Create obstruction based on selected tool
-      const baseObstruction = {
-        position: new Vector3(point.x, 0.5, point.z),
-        lane,
-        direction,
-      };
-
-      let obstruction;
-      
-      switch (selectedTool) {
-        case "pothole":
-          obstruction = {
-            ...baseObstruction,
-            type: "pothole" as const,
-            size: new Vector3(20, 0.2, 5), // 20m long pothole zone
-            effect: {
-              speedReduction: 0.5, // 50% speed reduction
-              capacityReduction: 0,
-              blocked: false
-            }
-          };
-          break;
-          
-        case "barricade":
-          obstruction = {
-            ...baseObstruction,
-            type: "barricade" as const,
-            size: new Vector3(2, 1.5, 0.5),
-            effect: {
-              speedReduction: 0,
-              capacityReduction: 0,
-              blocked: true // Completely blocks the lane
-            }
-          };
-          break;
-          
-        case "vendor":
-          obstruction = {
-            ...baseObstruction,
-            type: "vendor" as const,
-            size: new Vector3(3, 1, 2),
-            effect: {
-              speedReduction: 0.3, // 30% speed reduction
-              capacityReduction: 0.5, // 50% capacity reduction
-              blocked: false
-            }
-          };
-          break;
-          
-        default:
-          return;
-      }
-
-      addObstruction(obstruction);
-      setIsPlacing(false);
-      selectTool(null);
-    }
-  };
-
-  // Attach click handler to canvas
-  useEffect(() => {
-    if (isPlacing) {
-      const canvas = document.querySelector('canvas');
-      if (canvas) {
-        canvas.addEventListener('click', handleSceneClick);
-        canvas.style.cursor = 'crosshair';
-        
-        return () => {
-          canvas.removeEventListener('click', handleSceneClick);
-          canvas.style.cursor = 'default';
-        };
-      }
-    }
-  }, [isPlacing, selectedTool]);
 
   const getToolIcon = (tool: ObstructionType) => {
     switch (tool) {
@@ -210,7 +85,7 @@ export const ChaosControls = () => {
             })}
           </div>
           
-          {isPlacing && (
+          {isPlacingObstruction && (
             <div className="p-2 bg-primary/10 rounded text-xs text-primary">
               Click on a road lane to place {selectedTool}
             </div>

@@ -69,6 +69,7 @@ interface SimulationContextType {
   trafficSignal: TrafficSignal;
   metrics: Metrics;
   selectedTool: ObstructionType | null;
+  isPlacingObstruction: boolean;
   
   // Actions
   startSimulation: () => void;
@@ -82,6 +83,7 @@ interface SimulationContextType {
   optimizeSignals: () => void;
   exportMetrics: () => void;
   resetToBaseline: () => void;
+  placeObstructionAtPosition: (x: number, z: number) => void;
 }
 
 const SimulationContext = createContext<SimulationContextType | null>(null);
@@ -492,6 +494,89 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setObstructions(prev => [...prev, newObstruction]);
   }, []);
 
+  const placeObstructionAtPosition = useCallback((x: number, z: number) => {
+    if (!selectedTool) return;
+
+    // Check if click is on road (within road bounds)
+    const isOnRoad = (Math.abs(x) < 10 && Math.abs(z) < 500) || 
+                    (Math.abs(z) < 10 && Math.abs(x) < 500);
+    
+    if (!isOnRoad) {
+      alert("Invalid placement — must be on road.");
+      return;
+    }
+
+    // Determine which lane and direction
+    let lane = 1;
+    let direction: "north" | "south" | "east" | "west";
+    
+    if (Math.abs(x) < 10) {
+      // North-South road
+      direction = z > 0 ? "north" : "south";
+      lane = x < 0 ? 1 : 2;
+    } else {
+      // East-West road  
+      direction = x > 0 ? "east" : "west";
+      lane = z > 0 ? 1 : 2;
+    }
+
+    // Create obstruction based on selected tool
+    const baseObstruction = {
+      position: new Vector3(x, 0.5, z),
+      lane,
+      direction,
+    };
+
+    let obstruction;
+    
+    switch (selectedTool) {
+      case "pothole":
+        obstruction = {
+          ...baseObstruction,
+          type: "pothole" as const,
+          size: new Vector3(20, 0.2, 5), // 20m long pothole zone
+          effect: {
+            speedReduction: 0.5, // 50% speed reduction
+            capacityReduction: 0,
+            blocked: false
+          }
+        };
+        break;
+        
+      case "barricade":
+        obstruction = {
+          ...baseObstruction,
+          type: "barricade" as const,
+          size: new Vector3(2, 1.5, 0.5),
+          effect: {
+            speedReduction: 0,
+            capacityReduction: 0,
+            blocked: true // Completely blocks the lane
+          }
+        };
+        break;
+        
+      case "vendor":
+        obstruction = {
+          ...baseObstruction,
+          type: "vendor" as const,
+          size: new Vector3(3, 1, 2),
+          effect: {
+            speedReduction: 0.3, // 30% speed reduction
+            capacityReduction: 0.5, // 50% capacity reduction
+            blocked: false
+          }
+        };
+        break;
+        
+      default:
+        return;
+    }
+
+    addObstruction(obstruction);
+    setSelectedTool(null); // Clear selection after placement
+  }, [selectedTool, addObstruction]);
+
   const removeObstruction = useCallback((id: string) => {
     setObstructions(prev => prev.filter(obs => obs.id !== id));
   }, []);
@@ -548,6 +633,7 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     trafficSignal,
     metrics,
     selectedTool,
+    isPlacingObstruction: selectedTool !== null,
     startSimulation,
     pauseSimulation,
     stopSimulation,
@@ -558,7 +644,8 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     clearAllObstructions,
     optimizeSignals,
     exportMetrics,
-    resetToBaseline
+    resetToBaseline,
+    placeObstructionAtPosition
   };
 
   return (

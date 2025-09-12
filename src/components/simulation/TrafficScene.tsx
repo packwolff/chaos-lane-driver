@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Mesh, Vector3, Color } from "three";
+import { useFrame, useThree } from "@react-three/fiber";
+import { Mesh, Vector3, Color, Raycaster, Vector2 } from "three";
 import { useSimulation } from "./SimulationContext";
 import { Text } from "@react-three/drei";
 
@@ -188,10 +188,34 @@ const Obstruction = ({ obstruction }: { obstruction: any }) => {
 };
 
 export const TrafficScene = () => {
-  const { vehicles, obstructions, trafficSignal } = useSimulation();
+  const { vehicles, obstructions, trafficSignal, selectedTool, placeObstructionAtPosition } = useSimulation();
+  const { camera, scene, gl } = useThree();
+
+  // Handle click events for obstruction placement
+  const handleClick = (event: any) => {
+    if (!selectedTool) return;
+
+    // Get mouse coordinates
+    const rect = gl.domElement.getBoundingClientRect();
+    const mouse = new Vector2();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Raycast to find intersection point
+    const raycaster = new Raycaster();
+    raycaster.setFromCamera(mouse, camera);
+    
+    // Find intersection with ground plane
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    
+    if (intersects.length > 0) {
+      const point = intersects[0].point;
+      placeObstructionAtPosition(point.x, point.z);
+    }
+  };
 
   return (
-    <>
+    <group onClick={handleClick}>
       {/* Lighting */}
       <ambientLight intensity={0.6} />
       <directionalLight 
@@ -271,6 +295,19 @@ export const TrafficScene = () => {
         {'\n'}
         {`Time: ${Math.ceil(trafficSignal.timeRemaining)}s`}
       </Text>
-    </>
+      
+      {/* Placement indicator */}
+      {selectedTool && (
+        <Text
+          position={[0, -15, 0]}
+          fontSize={2}
+          color="#00ff00"
+          anchorX="center"
+          anchorY="middle"
+        >
+          Click on road to place {selectedTool.toUpperCase()}
+        </Text>
+      )}
+    </group>
   );
 };
