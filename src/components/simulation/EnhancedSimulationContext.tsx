@@ -404,20 +404,20 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     return path;
   }, [isRoundabout, roundaboutConfig]);
 
-  // Enhanced vehicle spawning with proper physics initialization
+  // Memoized vehicle spawning for better performance
   const spawnVehicle = useCallback(() => {
     const directions: Vehicle["direction"][] = ["north", "south", "east", "west"];
-    const targetDirections: Vehicle["targetDirection"][] = [];
     
-    // Weighted target directions: straight 55%, left 25%, right 20%
-    for (let i = 0; i < 55; i++) targetDirections.push("straight");
-    for (let i = 0; i < 25; i++) targetDirections.push("left");
-    for (let i = 0; i < 20; i++) targetDirections.push("right");
+    // Pre-built weighted array for better performance with proper typing
+    const weightedTargets: Vehicle["targetDirection"][] = [
+      "straight", "straight", "straight", "straight", "straight",
+      "left", "left", "right", "right"
+    ];
     
-    const direction = directions[Math.floor(Math.random() * directions.length)];
-    const targetDirection = targetDirections[Math.floor(Math.random() * targetDirections.length)];
+    const direction = directions[Math.floor(Math.random() * 4)];
+    const targetDirection = weightedTargets[Math.floor(Math.random() * weightedTargets.length)];
     
-    // Weighted vehicle types: cars 80%, buses 12%, trucks 8%
+    // Optimized type selection
     const rand = Math.random();
     const type: VehicleType = rand < 0.8 ? "car" : rand < 0.92 ? "bus" : "truck";
     
@@ -457,70 +457,104 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     setVehicles(prev => [...prev, vehicle]);
   }, [generateVehiclePath]);
 
-  // Enhanced vehicle physics update
+  // Optimized vehicle physics update with better performance
   const updateVehiclePhysics = useCallback((vehicle: Vehicle, deltaTime: number): Vehicle => {
+    // Use object destructuring for better performance
+    const { position, speed, pathIndex, path, maxSpeed, acceleration, deceleration } = vehicle;
+    
+    // Pre-allocate result object
     const updatedVehicle = { ...vehicle };
     
-    // Check for obstructions affecting this vehicle
+    // Optimized obstruction checking
     let speedMultiplier = 1.0;
     let isBlocked = false;
     
-    obstructions.forEach(obstruction => {
-      const distance = vehicle.position.distanceTo(obstruction.position);
-      if (distance < obstruction.size.x) {
-        if (obstruction.effect.blocked) {
-          isBlocked = true;
-        } else {
-          speedMultiplier *= (1 - obstruction.effect.speedReduction);
+    // Early exit if no obstructions
+    if (obstructions.length > 0) {
+      const vehPos = position;
+      for (let i = 0; i < obstructions.length && !isBlocked; i++) {
+        const obs = obstructions[i];
+        // Use squared distance to avoid expensive sqrt
+        const dx = vehPos.x - obs.position.x;
+        const dz = vehPos.z - obs.position.z;
+        const distSq = dx * dx + dz * dz;
+        const radiusSq = obs.size.x * obs.size.x;
+        
+        if (distSq < radiusSq) {
+          if (obs.effect.blocked) {
+            isBlocked = true;
+          } else {
+            speedMultiplier *= (1 - obs.effect.speedReduction);
+          }
         }
       }
-    });
-    
-    // Apply speed smoothing filter
-    const desiredSpeed = isBlocked ? 0 : vehicle.maxSpeed * speedMultiplier;
-    updatedVehicle.targetSpeed = 0.15 * desiredSpeed + 0.85 * vehicle.targetSpeed;
-    
-    // Update speed with acceleration/deceleration
-    const speedDiff = updatedVehicle.targetSpeed - vehicle.speed;
-    if (Math.abs(speedDiff) > 0.1) {
-      const accel = speedDiff > 0 ? vehicle.acceleration : vehicle.deceleration;
-      updatedVehicle.speed += Math.sign(speedDiff) * accel * deltaTime;
-      updatedVehicle.speed = Math.max(0, Math.min(updatedVehicle.speed, vehicle.maxSpeed));
     }
     
-    // Update position along path
-    if (vehicle.pathIndex < vehicle.path.length - 1 && updatedVehicle.speed > 0.1) {
-      const currentTarget = vehicle.path[vehicle.pathIndex + 1];
-      const direction = currentTarget.clone().sub(vehicle.position).normalize();
+    // Optimized speed calculation
+    const targetSpeed = isBlocked ? 0 : maxSpeed * speedMultiplier;
+    updatedVehicle.targetSpeed = targetSpeed * 0.1 + vehicle.targetSpeed * 0.9; // Smoother acceleration
+    
+    // Update speed
+    const speedDiff = updatedVehicle.targetSpeed - speed;
+    if (Math.abs(speedDiff) > 0.02) {
+      const accel = speedDiff > 0 ? acceleration : deceleration;
+      updatedVehicle.speed = Math.max(0, Math.min(
+        speed + Math.sign(speedDiff) * accel * deltaTime,
+        maxSpeed
+      ));
+    }
+    
+    // Optimized position update
+    if (pathIndex < path.length - 1 && updatedVehicle.speed > 0.02) {
+      const target = path[pathIndex + 1];
       
-      updatedVehicle.velocity = direction.multiplyScalar(updatedVehicle.speed);
-      updatedVehicle.position.add(updatedVehicle.velocity.clone().multiplyScalar(deltaTime));
+      // Calculate direction more efficiently
+      const dx = target.x - position.x;
+      const dz = target.z - position.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
       
-      // Check if reached next waypoint
-      if (vehicle.position.distanceTo(currentTarget) < 2.0) {
-        updatedVehicle.pathIndex++;
+      if (dist > 0.5) {
+        // Normalize and move
+        const moveDistance = updatedVehicle.speed * deltaTime;
+        const factor = moveDistance / dist;
+        
+        updatedVehicle.position = position.clone();
+        updatedVehicle.position.x += dx * factor;
+        updatedVehicle.position.z += dz * factor;
+        
+        // Update velocity
+        updatedVehicle.velocity.set(dx / dist * updatedVehicle.speed, 0, dz / dist * updatedVehicle.speed);
+        
+        // Smooth rotation update
+        const targetRotation = Math.atan2(dx, dz);
+        let rotDiff = targetRotation - vehicle.rotation;
+        
+        // Normalize angle difference
+        while (rotDiff > Math.PI) rotDiff -= 2 * Math.PI;
+        while (rotDiff < -Math.PI) rotDiff += 2 * Math.PI;
+        
+        updatedVehicle.rotation = vehicle.rotation + rotDiff * Math.min(deltaTime * 5, 0.3);
+      } else {
+        updatedVehicle.pathIndex = pathIndex + 1;
       }
-      
-      // Update rotation for smooth steering
-      const targetRotation = Math.atan2(direction.x, direction.z);
-      const rotationDiff = targetRotation - vehicle.rotation;
-      updatedVehicle.rotation += rotationDiff * 0.1; // Smooth steering
     }
     
-    // Update wait time and CO2 emissions
+    // Simplified wait time and emissions
     if (updatedVehicle.speed < 0.1) {
-      updatedVehicle.isWaiting = true;
       updatedVehicle.waitTime += deltaTime;
-      updatedVehicle.co2Emitted += 0.2 * deltaTime; // 0.2g/sec when idling
+      updatedVehicle.isWaiting = updatedVehicle.waitTime > 1.0;
+      updatedVehicle.co2Emitted += 0.15 * deltaTime; // Idle emissions
     } else {
+      updatedVehicle.waitTime = Math.max(0, updatedVehicle.waitTime - deltaTime * 0.5);
       updatedVehicle.isWaiting = false;
+      updatedVehicle.co2Emitted += 0.05 * deltaTime * updatedVehicle.speed; // Moving emissions
     }
     
     return updatedVehicle;
   }, [obstructions]);
 
-  // Enhanced traffic signal update with optimization
-  const updateTrafficSignal = useCallback((deltaTime: number) => {
+  // Optimized traffic signal update - renamed to avoid conflict
+  const updateTrafficSignals = useCallback((deltaTime: number) => {
     setTrafficSignal(prev => {
       const newSignal = { ...prev };
       newSignal.timeRemaining -= deltaTime;
@@ -586,44 +620,64 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     });
   }, [vehicles]);
 
-  // Main simulation loop
+  // Optimized main simulation loop with reduced update frequency
   const animate = useCallback((currentTime: number) => {
     if (!isRunning || isPaused) return;
     
-    const deltaTime = (currentTime - lastTimeRef.current) / 1000 * speed;
+    const deltaTime = Math.min((currentTime - lastTimeRef.current) / 1000, 0.016) * speed; // Cap at 60fps
     lastTimeRef.current = currentTime;
     
-    // Spawn vehicles (1 per second network-wide)
-    if (Math.random() < deltaTime && vehicleIdCounter.current < 300) {
-      spawnVehicle();
-    }
-    
-    // Update vehicles
+    // Update vehicles with batched state changes
     setVehicles(prev => {
-      const updated = prev.map(vehicle => updateVehiclePhysics(vehicle, deltaTime));
+      const updated: Vehicle[] = [];
+      let completedCount = 0;
       
-      // Remove completed vehicles
-      const remaining = updated.filter(vehicle => {
+      // Process all vehicles in a single loop
+      for (let i = 0; i < prev.length; i++) {
+        const vehicle = prev[i];
+        
         if (vehicle.pathIndex >= vehicle.path.length - 1) {
-          completedVehiclesRef.current++;
-          return false;
+          completedCount++;
+          continue; // Remove completed vehicle
         }
-        return true;
-      });
+        
+        const updatedVehicle = updateVehiclePhysics(vehicle, deltaTime);
+        updated.push(updatedVehicle);
+      }
       
-      return remaining;
+      // Update completed vehicles counter
+      completedVehiclesRef.current += completedCount;
+      
+      return updated;
     });
     
-    // Update traffic signals (only for regular intersection)
-    if (!isRoundabout) {
-      updateTrafficSignal(deltaTime);
+    // Controlled vehicle spawning with better performance
+    const currentVehicleCount = vehicles.length;
+    const maxVehicles = 35; // Reduced for better performance
+    const spawnProbability = 0.2 * deltaTime; // Reduced spawn rate
+    
+    if (Math.random() < spawnProbability && 
+        currentVehicleCount < maxVehicles && 
+        vehicleIdCounter.current < 250) {
+      try {
+        spawnVehicle();
+      } catch (error) {
+        console.warn("Spawn failed:", error);
+      }
     }
     
-    // Update metrics
-    updateMetrics();
+    // Update traffic signals less frequently (every ~100ms)
+    if (!isRoundabout && Math.floor(currentTime / 100) !== Math.floor((currentTime - deltaTime * 1000) / 100)) {
+      updateTrafficSignals(deltaTime);
+    }
+    
+    // Update metrics even less frequently (every ~500ms)
+    if (Math.floor(currentTime / 500) !== Math.floor((currentTime - deltaTime * 1000) / 500)) {
+      updateMetrics();
+    }
     
     animationRef.current = requestAnimationFrame(animate);
-  }, [isRunning, isPaused, speed, spawnVehicle, updateVehiclePhysics, updateTrafficSignal, updateMetrics, isRoundabout]);
+  }, [isRunning, isPaused, speed, vehicles.length, spawnVehicle, updateVehiclePhysics, updateTrafficSignals, updateMetrics, isRoundabout]);
 
   // Start animation loop
   useEffect(() => {

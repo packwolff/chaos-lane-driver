@@ -1,4 +1,5 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useCallback } from "react";
+import React from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Mesh, Vector3, Color, Raycaster, Vector2 } from "three";
 import { useEnhancedSimulation } from "./EnhancedSimulationContext";
@@ -102,23 +103,28 @@ const TrafficLight = ({ position, signals }: {
   );
 };
 
-// Enhanced realistic vehicle component with detailed 3D models
-const Vehicle = ({ vehicle }: { vehicle: any }) => {
+// Memoized and optimized vehicle component
+const Vehicle = React.memo(({ vehicle }: { vehicle: any }) => {
   const groupRef = useRef<any>(null);
   const wheelRefs = [useRef<Mesh>(null), useRef<Mesh>(null), useRef<Mesh>(null), useRef<Mesh>(null)];
   
+  // Optimized frame update with reduced calculations
   useFrame((_, delta) => {
     if (groupRef.current) {
-      groupRef.current.position.copy(vehicle.position);
+      // Direct position and rotation updates for better performance
+      const pos = vehicle.position;
+      groupRef.current.position.set(pos.x, pos.y, pos.z);
       groupRef.current.rotation.y = vehicle.rotation;
       
-      // Animate wheels based on speed
-      const wheelRotation = vehicle.speed * delta * 2;
-      wheelRefs.forEach(wheelRef => {
-        if (wheelRef.current) {
-          wheelRef.current.rotation.x += wheelRotation;
-        }
-      });
+      // Animate wheels only if moving
+      if (vehicle.speed > 0.1) {
+        const wheelRotation = vehicle.speed * delta * 1.5; // Reduced multiplier for smoother animation
+        wheelRefs.forEach(wheelRef => {
+          if (wheelRef.current) {
+            wheelRef.current.rotation.x += wheelRotation;
+          }
+        });
+      }
     }
   });
 
@@ -358,10 +364,19 @@ const Vehicle = ({ vehicle }: { vehicle: any }) => {
       )}
     </group>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  const prev = prevProps.vehicle;
+  const next = nextProps.vehicle;
+  return prev.id === next.id &&
+         prev.position.equals(next.position) &&
+         prev.rotation === next.rotation &&
+         prev.speed === next.speed &&
+         prev.isWaiting === next.isWaiting;
+});
 
-// Obstruction component
-const Obstruction = ({ obstruction }: { obstruction: any }) => {
+// Memoized obstruction component
+const Obstruction = React.memo(({ obstruction }: { obstruction: any }) => {
   const color = useMemo(() => {
     switch (obstruction.type) {
       case "pothole": return "#8B4513";
@@ -399,9 +414,9 @@ const Obstruction = ({ obstruction }: { obstruction: any }) => {
       </Text>
     </group>
   );
-};
+}, (prevProps, nextProps) => prevProps.obstruction.id === nextProps.obstruction.id);
 
-export const TrafficScene = () => {
+export const TrafficScene = React.memo(() => {
   const { 
     vehicles, 
     obstructions, 
@@ -412,8 +427,8 @@ export const TrafficScene = () => {
   } = useEnhancedSimulation();
   const { camera, scene, gl } = useThree();
 
-  // Handle click events for obstruction placement
-  const handleClick = (event: any) => {
+  // Memoize click handler for better performance
+  const handleClick = useCallback((event: any) => {
     if (!selectedTool) return;
 
     // Get mouse coordinates
@@ -433,30 +448,34 @@ export const TrafficScene = () => {
       const point = intersects[0].point;
       placeObstructionAtPosition(point.x, point.z);
     }
-  };
+  }, [selectedTool, camera, scene, gl, placeObstructionAtPosition]);
+
+  // Memoize vehicles and obstructions arrays to prevent unnecessary re-renders
+  const memoizedVehicles = useMemo(() => vehicles, [vehicles.length, vehicles.map(v => v.id + v.position.x + v.position.z).join()]);
+  const memoizedObstructions = useMemo(() => obstructions, [obstructions.length, obstructions.map(o => o.id).join()]);
 
   return (
     <group onClick={handleClick}>
-      {/* Enhanced Lighting */}
-      <ambientLight intensity={0.4} />
+      {/* Optimized Lighting */}
+      <ambientLight intensity={0.3} />
       <directionalLight 
         position={[100, 100, 50]} 
-        intensity={1.2} 
+        intensity={1.0} 
         castShadow
-        shadow-mapSize-width={4096}
-        shadow-mapSize-height={4096}
-        shadow-camera-far={1000}
-        shadow-camera-left={-500}
-        shadow-camera-right={500}
-        shadow-camera-top={500}
-        shadow-camera-bottom={-500}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-far={800}
+        shadow-camera-left={-400}
+        shadow-camera-right={400}
+        shadow-camera-top={400}
+        shadow-camera-bottom={-400}
         shadow-bias={-0.0001}
       />
       
-      {/* Additional soft lighting */}
+      {/* Reduced additional lighting for performance */}
       <directionalLight 
-        position={[-50, 80, -50]} 
-        intensity={0.3} 
+        position={[-50, 60, -50]} 
+        intensity={0.2} 
         color="#e6f3ff"
       />
       
@@ -523,13 +542,13 @@ export const TrafficScene = () => {
         </>
       )}
       
-      {/* Vehicles */}
-      {vehicles.map(vehicle => (
+      {/* Vehicles - Use memoized array for performance */}
+      {memoizedVehicles.map(vehicle => (
         <Vehicle key={vehicle.id} vehicle={vehicle} />
       ))}
       
-      {/* Obstructions */}
-      {obstructions.map(obstruction => (
+      {/* Obstructions - Use memoized array for performance */}
+      {memoizedObstructions.map(obstruction => (
         <Obstruction key={obstruction.id} obstruction={obstruction} />
       ))}
       
@@ -572,6 +591,6 @@ export const TrafficScene = () => {
           </mesh>
         </group>
       )}
-    </group>
+     </group>
   );
-};
+});
