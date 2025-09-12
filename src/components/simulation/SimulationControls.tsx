@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { useEnhancedSimulation } from "./EnhancedSimulationContext";
-import { Play, Pause, Square, RotateCcw, Download, Zap, RotateCw, Camera } from "lucide-react";
+import { Play, Pause, RotateCcw, Download, Camera } from "lucide-react";
 import { CameraControls } from "./CameraControls";
 
 export const SimulationControls = () => {
@@ -34,74 +33,24 @@ export const SimulationControls = () => {
             Run
           </Button>
           <Button
-            variant={isPaused ? "default" : "secondary"}
+            variant={!isRunning ? "default" : "secondary"}
             size="sm"
             onClick={pauseSimulation}
-            disabled={!isRunning}
           >
             <Pause className="w-4 h-4" />
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={stopSimulation}
-            disabled={!isRunning}
-          >
-            <Square className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Speed control */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-foreground">
-            Speed: {speed}x
-          </label>
-          <Slider
-            value={[speed]}
-            onValueChange={(value) => setSimulationSpeed(value[0])}
-            min={0.25}
-            max={4}
-            step={0.25}
-            className="w-full"
-          />
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>0.25x</span>
-            <span>1x</span>
-            <span>4x</span>
-          </div>
         </div>
 
         {/* Action buttons */}
         <div className="space-y-2">
           <Button
-            variant={isRoundabout ? "default" : "outline"}
-            size="sm"
-            onClick={toggleRoundabout}
-            className="w-full"
-          >
-            <RotateCw className="w-4 h-4 mr-2" />
-            {isRoundabout ? "Disable" : "Enable"} Roundabout
-          </Button>
-          
-          <Button
             variant="outline"
             size="sm"
-            onClick={resetToBaseline}
+            onClick={resetSimulation}
             className="w-full"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
-            Reset to Baseline
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={optimizeSignals}
-            className="w-full"
-            disabled={isRoundabout}
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            Optimize Signals
+            Reset Simulation
           </Button>
           
           <Button
@@ -127,7 +76,7 @@ export const SimulationControls = () => {
         <div className="p-2 rounded bg-muted">
           <div className="text-xs text-muted-foreground">Status</div>
           <div className="text-sm font-medium">
-            {!isRunning ? "Stopped" : isPaused ? "Paused" : "Running"}
+            {isRunning ? "Running" : "Paused"}
           </div>
         </div>
       </CardContent>
