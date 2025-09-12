@@ -8,18 +8,11 @@ import { CameraControls } from "./CameraControls";
 export const SimulationControls = () => {
   const {
     isRunning,
-    isPaused,
-    speed,
-    isRoundabout,
     cameraPreset,
     startSimulation,
     pauseSimulation,
-    stopSimulation,
-    setSimulationSpeed,
-    resetToBaseline,
-    optimizeSignals,
+    resetSimulation,
     exportMetrics,
-    toggleRoundabout,
     setCameraPreset
   } = useEnhancedSimulation();
 

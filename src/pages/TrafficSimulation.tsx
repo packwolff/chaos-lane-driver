@@ -5,6 +5,7 @@ import { TrafficScene } from "../components/simulation/TrafficScene";
 import { SimulationControls } from "../components/simulation/SimulationControls";
 import { MetricsDashboard } from "../components/simulation/MetricsDashboard";
 import { ChaosControls } from "../components/simulation/ChaosControls";
+import { DemoModeControls } from "../components/simulation/DemoModeControls";
 import { EnhancedSimulationProvider, useEnhancedSimulation } from "../components/simulation/EnhancedSimulationContext";
 import { Card } from "@/components/ui/card";
 
@@ -82,7 +83,8 @@ const TrafficSimulation = () => {
               </Canvas>
 
               {/* Overlay controls */}
-              <div className="absolute top-4 left-4 z-10">
+              <div className="absolute top-4 left-4 z-10 space-y-4">
+                <DemoModeControls />
                 <ChaosControls />
               </div>
               

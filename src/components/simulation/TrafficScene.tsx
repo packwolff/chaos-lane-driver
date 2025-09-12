@@ -5,6 +5,7 @@ import { Mesh, Vector3, Color, Raycaster, Vector2 } from "three";
 import { useEnhancedSimulation } from "./EnhancedSimulationContext";
 import { Text, Environment, ContactShadows, Plane } from "@react-three/drei";
 import { RoundaboutGeometry } from "./RoundaboutGeometry";
+import { EmissionParticles, SpeedEffects, CongestionHeatmap, DynamicLighting } from "./VisualEffects";
 
 // Road intersection component
 const RoadIntersection = () => {
@@ -422,8 +423,6 @@ export const TrafficScene = React.memo(() => {
     obstructions, 
     trafficSignal, 
     selectedTool, 
-    placeObstructionAtPosition,
-    isRoundabout
   } = useEnhancedSimulation();
   const { camera, scene, gl } = useThree();
 
