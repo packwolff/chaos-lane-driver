@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<net version="1.20" junctionCornerDetail="5" limitTurnSpeed="5.50" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/net_file.xsd">
+
+    <location netOffset="0.00,0.00" convBoundary="-500.00,-500.00,500.00,500.00" origBoundary="-500.00,-500.00,500.00,500.00" projParameter="!"/>
+
+    <!-- Nodes (Junctions) -->
+    <junction id="center" type="traffic_light" x="0.00" y="0.00" incLanes="north_to_center_0 north_to_center_1 north_to_center_2 south_to_center_0 south_to_center_1 south_to_center_2 east_to_center_0 east_to_center_1 east_to_center_2 west_to_center_0 west_to_center_1 west_to_center_2" intLanes="" shape="-9.75,15.00 9.75,15.00 10.42,12.17 11.75,11.75 12.17,10.42 15.00,9.75 15.00,-9.75 12.17,-10.42 11.75,-11.75 10.42,-12.17 9.75,-15.00 -9.75,-15.00 -10.42,-12.17 -11.75,-11.75 -12.17,-10.42 -15.00,-9.75 -15.00,9.75 -12.17,10.42 -11.75,11.75 -10.42,12.17"/>
+    
+    <junction id="north_end" type="priority" x="0.00" y="500.00" incLanes="" intLanes="" shape="-9.75,500.00 9.75,500.00"/>
+    <junction id="south_end" type="priority" x="0.00" y="-500.00" incLanes="" intLanes="" shape="9.75,-500.00 -9.75,-500.00"/>
+    <junction id="east_end" type="priority" x="500.00" y="0.00" incLanes="" intLanes="" shape="500.00,-9.75 500.00,9.75"/>
+    <junction id="west_end" type="priority" x="-500.00" y="0.00" incLanes="" intLanes="" shape="-500.00,9.75 -500.00,-9.75"/>
+
+    <!-- Edges (Roads) -->
+    <!-- North approach -->
+    <edge id="north_approach" from="north_end" to="center" priority="1" numLanes="3" speed="15.00">
+        <lane id="north_approach_0" index="0" speed="15.00" length="485.00" shape="-6.50,500.00 -6.50,15.00"/>
+        <lane id="north_approach_1" index="1" speed="15.00" length="485.00" shape="-3.25,500.00 -3.25,15.00"/>
+        <lane id="north_approach_2" index="2" speed="15.00" length="485.00" shape="0.00,500.00 0.00,15.00"/>
+    </edge>
+    
+    <!-- South approach -->
+    <edge id="south_approach" from="south_end" to="center" priority="1" numLanes="3" speed="15.00">
+        <lane id="south_approach_0" index="0" speed="15.00" length="485.00" shape="6.50,-500.00 6.50,-15.00"/>
+        <lane id="south_approach_1" index="1" speed="15.00" length="485.00" shape="3.25,-500.00 3.25,-15.00"/>
+        <lane id="south_approach_2" index="2" speed="15.00" length="485.00" shape="0.00,-500.00 0.00,-15.00"/>
+    </edge>
+    
+    <!-- East approach -->
+    <edge id="east_approach" from="east_end" to="center" priority="1" numLanes="3" speed="15.00">
+        <lane id="east_approach_0" index="0" speed="15.00" length="485.00" shape="500.00,6.50 15.00,6.50"/>
+        <lane id="east_approach_1" index="1" speed="15.00" length="485.00" shape="500.00,3.25 15.00,3.25"/>
+        <lane id="east_approach_2" index="2" speed="15.00" length="485.00" shape="500.00,0.00 15.00,0.00"/>
+    </edge>
+    
+    <!-- West approach -->
+    <edge id="west_approach" from="west_end" to="center" priority="1" numLanes="3" speed="15.00">
+        <lane id="west_approach_0" index="0" speed="15.00" length="485.00" shape="-500.00,-6.50 -15.00,-6.50"/>
+        <lane id="west_approach_1" index="1" speed="15.00" length="485.00" shape="-500.00,-3.25 -15.00,-3.25"/>
+        <lane id="west_approach_2" index="2" speed="15.00" length="485.00" shape="-500.00,0.00 -15.00,0.00"/>
+    </edge>
+    
+    <!-- Exit edges -->
+    <edge id="north_exit" from="center" to="north_end" priority="1" numLanes="3" speed="15.00">
+        <lane id="north_exit_0" index="0" speed="15.00" length="485.00" shape="3.25,15.00 3.25,500.00"/>
+        <lane id="north_exit_1" index="1" speed="15.00" length="485.00" shape="6.50,15.00 6.50,500.00"/>
+        <lane id="north_exit_2" index="2" speed="15.00" length="485.00" shape="9.75,15.00 9.75,500.00"/>
+    </edge>
+    
+    <edge id="south_exit" from="center" to="south_end" priority="1" numLanes="3" speed="15.00">
+        <lane id="south_exit_0" index="0" speed="15.00" length="485.00" shape="-3.25,-15.00 -3.25,-500.00"/>
+        <lane id="south_exit_1" index="1" speed="15.00" length="485.00" shape="-6.50,-15.00 -6.50,-500.00"/>
+        <lane id="south_exit_2" index="2" speed="15.00" length="485.00" shape="-9.75,-15.00 -9.75,-500.00"/>
+    </edge>
+    
+    <edge id="east_exit" from="center" to="east_end" priority="1" numLanes="3" speed="15.00">
+        <lane id="east_exit_0" index="0" speed="15.00" length="485.00" shape="15.00,-3.25 500.00,-3.25"/>
+        <lane id="east_exit_1" index="1" speed="15.00" length="485.00" shape="15.00,-6.50 500.00,-6.50"/>
+        <lane id="east_exit_2" index="2" speed="15.00" length="485.00" shape="15.00,-9.75 500.00,-9.75"/>
+    </edge>
+    
+    <edge id="west_exit" from="center" to="west_end" priority="1" numLanes="3" speed="15.00">
+        <lane id="west_exit_0" index="0" speed="15.00" length="485.00" shape="-15.00,3.25 -500.00,3.25"/>
+        <lane id="west_exit_1" index="1" speed="15.00" length="485.00" shape="-15.00,6.50 -500.00,6.50"/>
+        <lane id="west_exit_2" index="2" speed="15.00" length="485.00" shape="-15.00,9.75 -500.00,9.75"/>
+    </edge>
+
+    <!-- Traffic Light Logic -->
+    <tlLogic id="center" type="static" programID="0" offset="0">
+        <phase duration="30" state="GGGrrrGGGrrr"/>
+        <phase duration="5" state="yyyrrryyyrrr"/>
+        <phase duration="2" state="rrrrrrrrrrrr"/>
+        <phase duration="30" state="rrrGGGrrrGGG"/>
+        <phase duration="5" state="rrryyyrrryyy"/>
+        <phase duration="2" state="rrrrrrrrrrrr"/>
+    </tlLogic>
+
+    <!-- Internal connections for turns -->
+    <connection from="north_approach" to="south_exit" fromLane="1" toLane="0" via="" tl="center" linkIndex="0"/>
+    <connection from="north_approach" to="east_exit" fromLane="0" toLane="0" via="" tl="center" linkIndex="1"/>
+    <connection from="north_approach" to="west_exit" fromLane="2" toLane="0" via="" tl="center" linkIndex="2"/>
+    
+    <connection from="south_approach" to="north_exit" fromLane="1" toLane="0" via="" tl="center" linkIndex="6"/>
+    <connection from="south_approach" to="west_exit" fromLane="0" toLane="0" via="" tl="center" linkIndex="7"/>
+    <connection from="south_approach" to="east_exit" fromLane="2" toLane="0" via="" tl="center" linkIndex="8"/>
+    
+    <connection from="east_approach" to="west_exit" fromLane="1" toLane="0" via="" tl="center" linkIndex="3"/>
+    <connection from="east_approach" to="north_exit" fromLane="2" toLane="0" via="" tl="center" linkIndex="4"/>
+    <connection from="east_approach" to="south_exit" fromLane="0" toLane="0" via="" tl="center" linkIndex="5"/>
+    
+    <connection from="west_approach" to="east_exit" fromLane="1" toLane="0" via="" tl="center" linkIndex="9"/>
+    <connection from="west_approach" to="south_exit" fromLane="2" toLane="0" via="" tl="center" linkIndex="10"/>
+    <connection from="west_approach" to="north_exit" fromLane="0" toLane="0" via="" tl="center" linkIndex="11"/>
+
+</net>

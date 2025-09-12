@@ -47,6 +47,29 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        traffic: {
+          red: "hsl(var(--traffic-red))",
+          yellow: "hsl(var(--traffic-yellow))",
+          green: "hsl(var(--traffic-green))",
+        },
+        road: {
+          surface: "hsl(var(--road-surface))",
+          marking: "hsl(var(--lane-marking))",
+        },
+        vehicle: {
+          primary: "hsl(var(--vehicle-primary))",
+          secondary: "hsl(var(--vehicle-secondary))",
+          truck: "hsl(var(--vehicle-truck))",
+        },
+        obstruction: {
+          danger: "hsl(var(--obstruction-danger))",
+          warning: "hsl(var(--obstruction-warning))",
+        },
+        metric: {
+          success: "hsl(var(--metric-success))",
+          warning: "hsl(var(--metric-warning))",
+          danger: "hsl(var(--metric-danger))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
