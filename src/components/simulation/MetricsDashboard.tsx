@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { useSimulation } from "./SimulationContext";
+import { useEnhancedSimulation } from "./EnhancedSimulationContext";
 import { Badge } from "@/components/ui/badge";
 import { 
   Car, 
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 export const MetricsDashboard = () => {
-  const { metrics, trafficSignal } = useSimulation();
+  const { metrics, exportMetrics, baselineMetrics, trafficSignal } = useEnhancedSimulation();
 
   const getMetricColor = (value: number, thresholds: { good: number, warning: number }) => {
     if (value <= thresholds.good) return "metric-success";

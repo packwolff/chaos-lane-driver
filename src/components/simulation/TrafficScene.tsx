@@ -1,8 +1,9 @@
 import { useRef, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Mesh, Vector3, Color, Raycaster, Vector2 } from "three";
-import { useSimulation } from "./SimulationContext";
-import { Text } from "@react-three/drei";
+import { useEnhancedSimulation } from "./EnhancedSimulationContext";
+import { Text, Environment, ContactShadows, Plane } from "@react-three/drei";
+import { RoundaboutGeometry } from "./RoundaboutGeometry";
 
 // Road intersection component
 const RoadIntersection = () => {
@@ -188,7 +189,14 @@ const Obstruction = ({ obstruction }: { obstruction: any }) => {
 };
 
 export const TrafficScene = () => {
-  const { vehicles, obstructions, trafficSignal, selectedTool, placeObstructionAtPosition } = useSimulation();
+  const { 
+    vehicles, 
+    obstructions, 
+    trafficSignal, 
+    selectedTool, 
+    placeObstructionAtPosition,
+    isRoundabout
+  } = useEnhancedSimulation();
   const { camera, scene, gl } = useThree();
 
   // Handle click events for obstruction placement
@@ -216,62 +224,91 @@ export const TrafficScene = () => {
 
   return (
     <group onClick={handleClick}>
-      {/* Lighting */}
-      <ambientLight intensity={0.6} />
+      {/* Enhanced Lighting */}
+      <ambientLight intensity={0.4} />
       <directionalLight 
         position={[100, 100, 50]} 
-        intensity={0.8} 
+        intensity={1.2} 
         castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={500}
-        shadow-camera-left={-250}
-        shadow-camera-right={250}
-        shadow-camera-top={250}
-        shadow-camera-bottom={-250}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
+        shadow-camera-far={1000}
+        shadow-camera-left={-500}
+        shadow-camera-right={500}
+        shadow-camera-top={500}
+        shadow-camera-bottom={-500}
+        shadow-bias={-0.0001}
       />
       
-      {/* Environment */}
-      <fog attach="fog" args={["#202030", 300, 800]} />
+      {/* Additional soft lighting */}
+      <directionalLight 
+        position={[-50, 80, -50]} 
+        intensity={0.3} 
+        color="#e6f3ff"
+      />
       
-      {/* Ground plane */}
-      <mesh position={[0, -0.2, 0]} receiveShadow>
-        <planeGeometry args={[2000, 2000]} />
-        <meshLambertMaterial color="#2a4d2a" />
-      </mesh>
+      {/* Environment and atmosphere */}
+      <Environment preset="city" />
+      <fog attach="fog" args={["#87CEEB", 400, 1200]} />
       
-      {/* Road intersection */}
-      <RoadIntersection />
+      {/* Enhanced ground with contact shadows */}
+      <Plane 
+        args={[2000, 2000]} 
+        rotation={[-Math.PI / 2, 0, 0]} 
+        position={[0, -0.2, 0]} 
+        receiveShadow
+      >
+        <meshStandardMaterial 
+          color="#2d5a2d" 
+          roughness={0.8}
+          metalness={0.1}
+        />
+      </Plane>
       
-      {/* Traffic lights */}
-      <TrafficLight 
-        position={[-15, 0, -15]} 
-        signals={{
-          primary: trafficSignal.northSouth,
-          secondary: trafficSignal.eastWest
-        }}
+      <ContactShadows 
+        position={[0, -0.1, 0]} 
+        opacity={0.4} 
+        scale={500} 
+        blur={1.5} 
+        far={100} 
       />
-      <TrafficLight 
-        position={[15, 0, 15]} 
-        signals={{
-          primary: trafficSignal.northSouth,
-          secondary: trafficSignal.eastWest
-        }}
-      />
-      <TrafficLight 
-        position={[-15, 0, 15]} 
-        signals={{
-          primary: trafficSignal.eastWest,
-          secondary: trafficSignal.northSouth
-        }}
-      />
-      <TrafficLight 
-        position={[15, 0, -15]} 
-        signals={{
-          primary: trafficSignal.eastWest,
-          secondary: trafficSignal.northSouth
-        }}
-      />
+      
+      {/* Road intersection or roundabout */}
+      {isRoundabout ? <RoundaboutGeometry radius={20} /> : <RoadIntersection />}
+      
+      {/* Enhanced Traffic lights - only for non-roundabout */}
+      {!isRoundabout && (
+        <>
+          <TrafficLight 
+            position={[-15, 0, -15]} 
+            signals={{
+              primary: trafficSignal.northSouth,
+              secondary: trafficSignal.eastWest
+            }}
+          />
+          <TrafficLight 
+            position={[15, 0, 15]} 
+            signals={{
+              primary: trafficSignal.northSouth,
+              secondary: trafficSignal.eastWest
+            }}
+          />
+          <TrafficLight 
+            position={[-15, 0, 15]} 
+            signals={{
+              primary: trafficSignal.eastWest,
+              secondary: trafficSignal.northSouth
+            }}
+          />
+          <TrafficLight 
+            position={[15, 0, -15]} 
+            signals={{
+              primary: trafficSignal.eastWest,
+              secondary: trafficSignal.northSouth
+            }}
+          />
+        </>
+      )}
       
       {/* Vehicles */}
       {vehicles.map(vehicle => (
@@ -283,30 +320,44 @@ export const TrafficScene = () => {
         <Obstruction key={obstruction.id} obstruction={obstruction} />
       ))}
       
-      {/* Signal timer display */}
-      <Text
-        position={[0, 15, 0]}
-        fontSize={3}
-        color="white"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {`NS: ${trafficSignal.northSouth.toUpperCase()} | EW: ${trafficSignal.eastWest.toUpperCase()}`}
-        {'\n'}
-        {`Time: ${Math.ceil(trafficSignal.timeRemaining)}s`}
-      </Text>
-      
-      {/* Placement indicator */}
-      {selectedTool && (
+      {/* Signal timer display - only for non-roundabout */}
+      {!isRoundabout && (
         <Text
-          position={[0, -15, 0]}
-          fontSize={2}
-          color="#00ff00"
+          position={[0, 25, 0]}
+          fontSize={2.5}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
+          outlineWidth={0.1}
+          outlineColor="#000000"
         >
-          Click on road to place {selectedTool.toUpperCase()}
+          {`NS: ${trafficSignal.northSouth.toUpperCase()} | EW: ${trafficSignal.eastWest.toUpperCase()}`}
+          {'\n'}
+          {`Time: ${Math.ceil(trafficSignal.timeRemaining)}s`}
         </Text>
+      )}
+      
+      {/* Enhanced placement indicator */}
+      {selectedTool && (
+        <group>
+          <Text
+            position={[0, -20, 0]}
+            fontSize={2}
+            color="#00ff00"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.05}
+            outlineColor="#003300"
+          >
+            Click on road to place {selectedTool.toUpperCase()}
+          </Text>
+          
+          {/* Animated placement cursor */}
+          <mesh position={[0, -18, 0]}>
+            <ringGeometry args={[2, 2.5, 8]} />
+            <meshBasicMaterial color="#00ff00" transparent opacity={0.6} />
+          </mesh>
+        </group>
       )}
     </group>
   );

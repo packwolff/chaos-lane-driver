@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { useSimulation } from "./SimulationContext";
+import { useEnhancedSimulation } from "./EnhancedSimulationContext";
 import { Play, Pause, Square, RotateCcw, Download, Zap, RotateCw, Camera } from "lucide-react";
 import { CameraControls } from "./CameraControls";
 
@@ -21,7 +21,7 @@ export const SimulationControls = () => {
     exportMetrics,
     toggleRoundabout,
     setCameraPreset
-  } = useSimulation();
+  } = useEnhancedSimulation();
 
   return (
     <Card>
