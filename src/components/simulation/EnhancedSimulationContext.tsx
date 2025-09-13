@@ -149,7 +149,7 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
   // Simulation state
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [obstructions, setObstructions] = useState<Obstruction[]>([]);
-  
+
   const [trafficSignal, setTrafficSignal] = useState<TrafficSignalState>({
     northSouth: "green",
     eastWest: "red",
@@ -182,6 +182,58 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
   const obstructionIdCounter = useRef(0);
   const lastSpawnTime = useRef(0);
   const lastUpdateTime = useRef(0);
+  
+  // Initialize with some vehicles
+  useEffect(() => {
+    console.log('Initializing simulation with vehicles');
+    setTimeout(() => {
+      for (let i = 0; i < 2; i++) {
+        setTimeout(() => {
+          console.log('Spawning initial vehicle', i);
+          const directions: Vehicle["direction"][] = ["north", "south", "east", "west"];
+          const targetDirections: Vehicle["targetDirection"][] = ["straight", "left", "right"];
+          
+          const direction = directions[i % 4];
+          const targetDirection = targetDirections[i % 3];
+          
+          const path = generateVehiclePath(direction, targetDirection);
+          if (path.length === 0) return;
+
+          const config = PHYSICS_CONFIG.CAR;
+          
+          const vehicle: Vehicle = {
+            id: `init-vehicle-${i}`,
+            type: 'car',
+            position: path[0].clone(),
+            velocity: new Vector3(0, 0, 0),
+            rotation: direction === "north" ? Math.PI : direction === "south" ? 0 : 
+                      direction === "east" ? -Math.PI / 2 : Math.PI / 2,
+            targetRotation: 0,
+            speed: 0,
+            targetSpeed: config.maxSpeed,
+            maxSpeed: config.maxSpeed,
+            acceleration: config.accel,
+            deceleration: config.decel,
+            lane: 1,
+            targetLane: 1,
+            direction,
+            targetDirection,
+            path,
+            pathIndex: 0,
+            isWaiting: false,
+            waitTime: 0,
+            co2Emitted: 0,
+            laneChangeTimer: 0,
+            isChangingLanes: false,
+            safetyDistance: 2.0,
+            isApproachingIntersection: false
+          };
+
+          setVehicles(prev => [...prev, vehicle]);
+        }, i * 500);
+      }
+    }, 1000);
+  }, []);
 
   // Generate vehicle path
   const generateVehiclePath = useCallback((
@@ -391,9 +443,15 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     const now = Date.now();
     const deltaTime = (now - lastUpdateTime.current) / 1000;
     lastUpdateTime.current = now;
+    
+    // Debug logging
+    if (vehicles.length === 0 && now % 5000 < 100) {
+      console.log('Simulation running but no vehicles. Spawning vehicle...');
+    }
 
     // Spawn vehicles
-    if (now - lastSpawnTime.current > (isDemoMode ? 1000 : 3000)) {
+    if (now - lastSpawnTime.current > (isDemoMode ? 1000 : 2000)) {
+      console.log('Spawning vehicle, current count:', vehicles.length);
       spawnVehicle();
       lastSpawnTime.current = now;
     }
@@ -439,8 +497,11 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     });
   }, [isRunning, isDemoMode, spawnVehicle, updateVehicle, vehicles]);
 
-  // Animation loop
+  // Animation loop with proper initialization
   useEffect(() => {
+    lastUpdateTime.current = Date.now();
+    console.log('Animation loop starting, isRunning:', isRunning);
+    
     const animate = () => {
       updateSimulation();
       requestAnimationFrame(animate);
@@ -476,7 +537,14 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
       timeRemaining: 30,
       cycle: 0
     });
-  }, []);
+    
+    // Spawn initial vehicles after reset
+    setTimeout(() => {
+      for (let i = 0; i < 3; i++) {
+        setTimeout(() => spawnVehicle(), i * 1000);
+      }
+    }, 100);
+  }, [spawnVehicle]);
 
   // A/B Testing functions
   const runBaselineSimulation = useCallback(() => {
