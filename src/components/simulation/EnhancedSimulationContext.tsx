@@ -325,8 +325,8 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     setMetrics(prev => ({ ...prev, totalVehicles: prev.totalVehicles + 1 }));
   }, [generateVehiclePath]);
 
-  // Update vehicle physics with A/B testing logic
-  const updateVehicle = useCallback((vehicle: Vehicle, deltaTime: number): Vehicle => {
+  // Update vehicle physics with A/B testing logic and collision detection
+  const updateVehicle = useCallback((vehicle: Vehicle, deltaTime: number, allVehicles: Vehicle[]): Vehicle => {
     const { position, speed, pathIndex, path, maxSpeed } = vehicle;
     
     if (pathIndex >= path.length - 1) return vehicle;
@@ -334,6 +334,25 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     const target = path[pathIndex + 1];
     const direction = target.clone().sub(position).normalize();
     const distance = position.distanceTo(target);
+
+    // Check for vehicles ahead (collision detection)
+    let vehicleAhead = false;
+    let distanceToVehicleAhead = Infinity;
+    
+    allVehicles.forEach(otherVehicle => {
+      if (otherVehicle.id === vehicle.id) return;
+      
+      // Check if other vehicle is on similar path and ahead
+      const distanceToOther = position.distanceTo(otherVehicle.position);
+      const directionToOther = otherVehicle.position.clone().sub(position).normalize();
+      const dotProduct = direction.dot(directionToOther);
+      
+      // If vehicle is ahead (same direction) and close
+      if (dotProduct > 0.7 && distanceToOther < 15 && distanceToOther < distanceToVehicleAhead) {
+        vehicleAhead = true;
+        distanceToVehicleAhead = distanceToOther;
+      }
+    });
 
     // Check if vehicle is at intersection
     const isAtIntersection = Math.abs(position.x) < 15 && Math.abs(position.z) < 15;
@@ -368,6 +387,18 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     // Apply artificial delay in baseline mode
     if (artificialDelay || (simulationMode === 'baseline' && artificialDelayActive && isAtIntersection)) {
       isBlocked = true;
+    }
+
+    // Vehicle following logic - slow down if vehicle ahead is too close
+    if (vehicleAhead) {
+      const safeDistance = vehicle.safetyDistance;
+      if (distanceToVehicleAhead < safeDistance) {
+        isBlocked = true; // Stop if too close
+      } else if (distanceToVehicleAhead < safeDistance * 2) {
+        speedMultiplier *= 0.3; // Slow down significantly
+      } else if (distanceToVehicleAhead < safeDistance * 3) {
+        speedMultiplier *= 0.6; // Moderate slowdown
+      }
     }
 
     const targetSpeed = isBlocked ? 0 : maxSpeed * speedMultiplier;
@@ -413,7 +444,7 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
 
     // Update vehicles
     setVehicles(prev => {
-      const updated = prev.map(vehicle => updateVehicle(vehicle, deltaTime));
+      const updated = prev.map(vehicle => updateVehicle(vehicle, deltaTime, prev));
       // Remove vehicles that completed their path
       return updated.filter(vehicle => vehicle.pathIndex < vehicle.path.length - 1);
     });
