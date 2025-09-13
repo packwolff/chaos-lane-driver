@@ -1,18 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEnhancedSimulation } from "./EnhancedSimulationContext";
-import { Play, Pause, RotateCcw, Download, Camera } from "lucide-react";
+import { Play, Pause, RotateCcw, Download, Camera, Zap } from "lucide-react";
 import { CameraControls } from "./CameraControls";
 
 export const SimulationControls = () => {
   const {
     isRunning,
     cameraPreset,
+    simulationMode,
+    baselineWaitTime,
+    improvedWaitTime,
     startSimulation,
     pauseSimulation,
     resetSimulation,
     exportMetrics,
-    setCameraPreset
+    setCameraPreset,
+    runBaselineSimulation,
+    runSolutionSimulation
   } = useEnhancedSimulation();
 
   return (
@@ -21,21 +26,39 @@ export const SimulationControls = () => {
         <CardTitle className="text-lg text-foreground">Simulation Controls</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Playback controls */}
+        {/* A/B Testing Controls */}
+        <div className="space-y-2">
+          <Button
+            variant={simulationMode === 'baseline' ? "default" : "outline"}
+            size="sm"
+            onClick={runBaselineSimulation}
+            className="w-full"
+            disabled={isRunning}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Run Baseline Simulation
+          </Button>
+          
+          <Button
+            variant={simulationMode === 'solution' ? "default" : "outline"}
+            size="sm"
+            onClick={runSolutionSimulation}
+            className="w-full"
+            disabled={isRunning || !baselineWaitTime}
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            Apply 'Smart Signal' & Rerun
+          </Button>
+        </div>
+
+        {/* Pause/Reset controls */}
         <div className="flex gap-2">
           <Button
-            variant={isRunning ? "secondary" : "default"}
-            size="sm"
-            onClick={startSimulation}
-            className="flex-1"
-          >
-            <Play className="w-4 h-4 mr-1" />
-            Run
-          </Button>
-          <Button
-            variant={!isRunning ? "default" : "secondary"}
+            variant="secondary"
             size="sm"
             onClick={pauseSimulation}
+            disabled={!isRunning}
+            className="flex-1"
           >
             <Pause className="w-4 h-4" />
           </Button>
@@ -72,11 +95,43 @@ export const SimulationControls = () => {
           />
         </div>
 
+        {/* A/B Test Results */}
+        <div className="space-y-3 pt-4 border-t border-border">
+          <div className="text-sm font-medium text-foreground">
+            Performance Comparison
+          </div>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between items-center p-2 rounded bg-muted/50">
+              <span className="text-xs text-muted-foreground">Baseline Avg. Wait Time:</span>
+              <span className="text-sm font-mono font-medium">
+                {baselineWaitTime ? `${baselineWaitTime.toFixed(1)}s` : '--s'}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-2 rounded bg-muted/50">
+              <span className="text-xs text-muted-foreground">Improved Avg. Wait Time:</span>
+              <span className="text-sm font-mono font-medium text-green-600">
+                {improvedWaitTime ? `${improvedWaitTime.toFixed(1)}s` : '--s'}
+              </span>
+            </div>
+            
+            {baselineWaitTime && improvedWaitTime && (
+              <div className="flex justify-between items-center p-2 rounded bg-green-50 dark:bg-green-900/20">
+                <span className="text-xs text-green-700 dark:text-green-300">Improvement:</span>
+                <span className="text-sm font-mono font-bold text-green-600">
+                  {((baselineWaitTime - improvedWaitTime) / baselineWaitTime * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Status indicator */}
         <div className="p-2 rounded bg-muted">
           <div className="text-xs text-muted-foreground">Status</div>
           <div className="text-sm font-medium">
-            {isRunning ? "Running" : "Paused"}
+            {isRunning ? `Running ${simulationMode === 'baseline' ? 'Baseline' : 'Solution'}` : "Ready"}
           </div>
         </div>
       </CardContent>
