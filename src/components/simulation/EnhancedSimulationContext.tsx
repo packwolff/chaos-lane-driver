@@ -183,56 +183,11 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
   const lastSpawnTime = useRef(0);
   const lastUpdateTime = useRef(0);
   
-  // Initialize with some vehicles
+  // Initialize simulation on mount
   useEffect(() => {
-    console.log('Initializing simulation with vehicles');
-    setTimeout(() => {
-      for (let i = 0; i < 2; i++) {
-        setTimeout(() => {
-          console.log('Spawning initial vehicle', i);
-          const directions: Vehicle["direction"][] = ["north", "south", "east", "west"];
-          const targetDirections: Vehicle["targetDirection"][] = ["straight", "left", "right"];
-          
-          const direction = directions[i % 4];
-          const targetDirection = targetDirections[i % 3];
-          
-          const path = generateVehiclePath(direction, targetDirection);
-          if (path.length === 0) return;
-
-          const config = PHYSICS_CONFIG.CAR;
-          
-          const vehicle: Vehicle = {
-            id: `init-vehicle-${i}`,
-            type: 'car',
-            position: path[0].clone(),
-            velocity: new Vector3(0, 0, 0),
-            rotation: direction === "north" ? Math.PI : direction === "south" ? 0 : 
-                      direction === "east" ? -Math.PI / 2 : Math.PI / 2,
-            targetRotation: 0,
-            speed: 0,
-            targetSpeed: config.maxSpeed,
-            maxSpeed: config.maxSpeed,
-            acceleration: config.accel,
-            deceleration: config.decel,
-            lane: 1,
-            targetLane: 1,
-            direction,
-            targetDirection,
-            path,
-            pathIndex: 0,
-            isWaiting: false,
-            waitTime: 0,
-            co2Emitted: 0,
-            laneChangeTimer: 0,
-            isChangingLanes: false,
-            safetyDistance: 2.0,
-            isApproachingIntersection: false
-          };
-
-          setVehicles(prev => [...prev, vehicle]);
-        }, i * 500);
-      }
-    }, 1000);
+    console.log('Initializing simulation context');
+    lastUpdateTime.current = Date.now();
+    lastSpawnTime.current = Date.now();
   }, []);
 
   // Generate vehicle path
@@ -495,19 +450,26 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
         co2Emissions: vehicles.reduce((sum, v) => sum + v.co2Emitted, 0)
       };
     });
-  }, [isRunning, isDemoMode, spawnVehicle, updateVehicle, vehicles]);
+  }, [isRunning, isDemoMode]); // Remove vehicles from dependencies to prevent infinite loop
 
-  // Animation loop with proper initialization
+  // Animation loop - runs once and continuously
   useEffect(() => {
     lastUpdateTime.current = Date.now();
-    console.log('Animation loop starting, isRunning:', isRunning);
+    console.log('Animation loop starting');
     
     const animate = () => {
       updateSimulation();
       requestAnimationFrame(animate);
     };
-    animate();
-  }, [updateSimulation]);
+    
+    const animationId = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+    };
+  }, []); // Empty dependency array - only run once
 
   // Actions
   const startSimulation = useCallback(() => setIsRunning(true), []);
