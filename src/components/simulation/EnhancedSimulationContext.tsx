@@ -188,6 +188,12 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     console.log('Initializing simulation context');
     lastUpdateTime.current = Date.now();
     lastSpawnTime.current = Date.now();
+    
+    // Auto-start the simulation
+    setTimeout(() => {
+      setIsRunning(true);
+      console.log('Auto-starting simulation');
+    }, 500);
   }, []);
 
   // Generate vehicle path
