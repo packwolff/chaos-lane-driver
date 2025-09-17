@@ -1,19 +1,56 @@
-import { Suspense } from "react";
-import React from 'react';
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-
-// Traffic simulation components
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { Suspense, useRef } from "react";
 import { TrafficScene } from "../components/simulation/TrafficScene";
 import { SimulationControls } from "../components/simulation/SimulationControls";
 import { MetricsDashboard } from "../components/simulation/MetricsDashboard";
 import { ChaosControls } from "../components/simulation/ChaosControls";
 import { DemoModeControls } from "../components/simulation/DemoModeControls";
-import { EnhancedSimulationProvider } from "../components/simulation/EnhancedSimulationContext";
+import { EnhancedSimulationProvider, useEnhancedSimulation } from "../components/simulation/EnhancedSimulationContext";
 import { Card } from "@/components/ui/card";
+import React from 'react';
+
+// Enhanced camera component with smooth transitions
+const EnhancedCamera = () => {
+  const { cameraPreset } = useEnhancedSimulation();
+  const cameraRef = useRef();
+  const controlsRef = useRef();
+  
+  // Camera preset positions with proper typing
+  const cameraPositions = {
+    orbit: { position: [0, 150, 200] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
+    'top-down': { position: [0, 300, 0] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
+    approach: { position: [0, 50, 250] as [number, number, number], target: [0, 0, 0] as [number, number, number] },
+    judge: { position: [-100, 80, 150] as [number, number, number], target: [0, 0, 0] as [number, number, number] }
+  };
+  
+  return (
+    <>
+      <PerspectiveCamera
+        ref={cameraRef}
+        makeDefault
+        position={cameraPositions[cameraPreset].position}
+        fov={60}
+        near={1}
+        far={2000}
+      />
+      <OrbitControls
+        ref={controlsRef}
+        target={cameraPositions[cameraPreset].target}
+        enablePan={true}
+        enableZoom={true}
+        enableRotate={cameraPreset === 'orbit'}
+        maxPolarAngle={cameraPreset === 'top-down' ? 0 : Math.PI / 2.1}
+        minDistance={30}
+        maxDistance={500}
+        enableDamping={true}
+        dampingFactor={0.05}
+      />
+    </>
+  );
+};
 
 const TrafficSimulation = () => {
-
   return (
     <div className="min-h-screen bg-background">
       <EnhancedSimulationProvider>
@@ -39,26 +76,10 @@ const TrafficSimulation = () => {
           <div className="flex flex-1 overflow-hidden">
             {/* 3D Scene */}
             <div className="flex-1 relative bg-gradient-to-b from-sky-100 to-green-50 dark:from-gray-800 dark:to-gray-900">
-              <Canvas 
-                shadows 
-                camera={{ 
-                  position: [100, 80, 100], 
-                  fov: 45,
-                  near: 0.1,
-                  far: 2000
-                }}
-                className="w-full h-full"
-              >
+              <Canvas shadows dpr={[1, 2]} gl={{ antialias: true, alpha: false }}>
                 <Suspense fallback={null}>
-                  <OrbitControls 
-                    enablePan={true}
-                    enableZoom={true}
-                    enableRotate={true}
-                    maxDistance={300}
-                    minDistance={20}
-                    maxPolarAngle={Math.PI * 0.45}
-                  />
                   <TrafficScene />
+                  <EnhancedCamera />
                 </Suspense>
               </Canvas>
 
@@ -67,7 +88,7 @@ const TrafficSimulation = () => {
                 <DemoModeControls />
                 <ChaosControls />
               </div>
-
+              
               {/* Loading overlay */}
               <div className="absolute bottom-4 right-4 z-10">
                 <Card className="p-2 bg-background/80 backdrop-blur-sm border border-border/50">
