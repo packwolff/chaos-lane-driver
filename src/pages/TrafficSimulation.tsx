@@ -1,12 +1,10 @@
-import { Suspense, useRef, useEffect } from "react";
+import { Suspense } from "react";
 import React from 'react';
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 
-// CesiumJS Imports
-import { Viewer, SceneMode, createWorldTerrainAsync, Cartesian3, Math as CesiumMath } from 'cesium';
-import 'cesium/Build/Cesium/Widgets/widgets.css';
-
-// Your existing UI and State Management Imports
-import { TrafficScene } from "../components/simulation/TrafficScene"; // Note: This is no longer rendered but kept if other logic depends on it.
+// Traffic simulation components
+import { TrafficScene } from "../components/simulation/TrafficScene";
 import { SimulationControls } from "../components/simulation/SimulationControls";
 import { MetricsDashboard } from "../components/simulation/MetricsDashboard";
 import { ChaosControls } from "../components/simulation/ChaosControls";
@@ -15,38 +13,6 @@ import { EnhancedSimulationProvider } from "../components/simulation/EnhancedSim
 import { Card } from "@/components/ui/card";
 
 const TrafficSimulation = () => {
-  // Create a React ref to attach to the div that will hold the Cesium map
-  const cesiumContainer = useRef<HTMLDivElement>(null);
-
-  // useEffect hook runs once after the component's div is rendered to initialize the map
-  useEffect(() => {
-    const initializeMap = async () => {
-      if (cesiumContainer.current) {
-        const viewer = new Viewer(cesiumContainer.current, {
-          sceneMode: SceneMode.COLUMBUS_VIEW,
-          terrainProvider: await createWorldTerrainAsync(),
-          // Hide unnecessary UI elements for a cleaner look
-          animation: false,
-          timeline: false,
-          geocoder: false,
-          homeButton: false,
-          navigationHelpButton: false,
-        });
-
-        // Fly the camera to a position overlooking India
-        viewer.camera.flyTo({
-          destination: Cartesian3.fromDegrees(78.96, 20.59, 1500000), // Lon, Lat, Height
-          orientation: {
-            heading: CesiumMath.toRadians(0.0),
-            pitch: CesiumMath.toRadians(-90.0),
-            roll: 0.0,
-          },
-        });
-      }
-    };
-
-    initializeMap();
-  }, []); // Empty dependency array ensures this runs only once
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,12 +39,28 @@ const TrafficSimulation = () => {
           <div className="flex flex-1 overflow-hidden">
             {/* 3D Scene */}
             <div className="flex-1 relative bg-gradient-to-b from-sky-100 to-green-50 dark:from-gray-800 dark:to-gray-900">
-              
-              {/* This div is now the container for the CesiumJS Map */}
-              <div
-                ref={cesiumContainer}
-                className="absolute top-0 left-0 w-full h-full"
-              />
+              <Canvas 
+                shadows 
+                camera={{ 
+                  position: [100, 80, 100], 
+                  fov: 45,
+                  near: 0.1,
+                  far: 2000
+                }}
+                className="w-full h-full"
+              >
+                <Suspense fallback={null}>
+                  <OrbitControls 
+                    enablePan={true}
+                    enableZoom={true}
+                    enableRotate={true}
+                    maxDistance={300}
+                    minDistance={20}
+                    maxPolarAngle={Math.PI * 0.45}
+                  />
+                  <TrafficScene />
+                </Suspense>
+              </Canvas>
 
               {/* Overlay controls */}
               <div className="absolute top-4 left-4 z-10 space-y-4">
