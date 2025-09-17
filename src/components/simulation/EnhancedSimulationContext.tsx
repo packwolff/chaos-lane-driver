@@ -435,21 +435,76 @@ export const EnhancedSimulationProvider: React.FC<{ children: React.ReactNode }>
     const now = Date.now();
     const deltaTime = (now - lastUpdateTime.current) / 1000;
     lastUpdateTime.current = now;
-    
-    // Debug logging
-    if (vehicles.length === 0 && now % 5000 < 100) {
-      console.log('Simulation running but no vehicles. Spawning vehicle...');
-    }
 
-    // Spawn vehicles
-    if (now - lastSpawnTime.current > (isDemoMode ? 1000 : 2000)) {
-      console.log('Spawning vehicle, current count:', vehicles.length);
-      spawnVehicle();
-      lastSpawnTime.current = now;
-    }
-
-    // Update vehicles
+    // Update vehicles first, then check if we need to spawn
     setVehicles(prev => {
+      // Debug logging
+      if (prev.length === 0 && now % 5000 < 100) {
+        console.log('Simulation running but no vehicles. Spawning vehicle...');
+      }
+
+      // Spawn vehicles if needed
+      if (now - lastSpawnTime.current > (isDemoMode ? 1000 : 2000)) {
+        console.log('Spawning vehicle, current count:', prev.length);
+        lastSpawnTime.current = now;
+        
+        // Spawn a new vehicle
+        const directions: Vehicle["direction"][] = ["north", "south", "east", "west"];
+        const targetDirections: Vehicle["targetDirection"][] = ["straight", "straight", "straight", "left", "right"];
+        
+        const direction = directions[Math.floor(Math.random() * 4)];
+        const targetDirection = targetDirections[Math.floor(Math.random() * targetDirections.length)];
+        
+        const rand = Math.random();
+        const type: VehicleType = rand < 0.8 ? "car" : rand < 0.92 ? "bus" : "truck";
+        
+        const path = generateVehiclePath(direction, targetDirection);
+        if (path.length > 0) {
+          const config = PHYSICS_CONFIG[type.toUpperCase() as keyof typeof PHYSICS_CONFIG];
+          
+          const newVehicle: Vehicle = {
+            id: `vehicle-${vehicleIdCounter.current++}`,
+            type,
+            position: path[0].clone(),
+            velocity: new Vector3(0, 0, 0),
+            rotation: direction === "north" ? Math.PI : direction === "south" ? 0 : 
+                      direction === "east" ? -Math.PI / 2 : Math.PI / 2,
+            targetRotation: 0,
+            speed: 0,
+            targetSpeed: config.maxSpeed,
+            maxSpeed: config.maxSpeed,
+            acceleration: config.accel,
+            deceleration: config.decel,
+            lane: 1,
+            targetLane: 1,
+            direction,
+            targetDirection,
+            path,
+            pathIndex: 0,
+            isWaiting: false,
+            waitTime: 0,
+            co2Emitted: 0,
+            laneChangeTimer: 0,
+            isChangingLanes: false,
+            safetyDistance: Math.max(2.0, config.length * 0.8),
+            isApproachingIntersection: false
+          };
+          
+          // Update metrics
+          setMetrics(prevMetrics => ({ ...prevMetrics, totalVehicles: prevMetrics.totalVehicles + 1 }));
+          
+          // Add new vehicle to the list
+          const withNewVehicle = [...prev, newVehicle];
+          
+          // Update existing vehicles
+          const updated = withNewVehicle.map(vehicle => updateVehicle(vehicle, deltaTime, withNewVehicle));
+          
+          // Remove vehicles that completed their path
+          return updated.filter(vehicle => vehicle.pathIndex < vehicle.path.length - 1);
+        }
+      }
+      
+      // Just update existing vehicles
       const updated = prev.map(vehicle => updateVehicle(vehicle, deltaTime, prev));
       // Remove vehicles that completed their path
       return updated.filter(vehicle => vehicle.pathIndex < vehicle.path.length - 1);
